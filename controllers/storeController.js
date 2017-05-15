@@ -78,3 +78,9 @@ exports.updateStore = async (req, res) => {
   res.redirect(`/stores/${store._id}/edit`);
   // Redirect them to store and tell them it worked
 };
+
+exports.getStoreBySlug = async (req, res, next) => {
+  const store = await Store.findOne({ slug: req.params.slug });
+  if (!store) return next(); //Go to 404 error handler in app.js
+  res.render('store', { store , title: store.name });
+}
