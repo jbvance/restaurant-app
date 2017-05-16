@@ -54,4 +54,14 @@ storeSchema.pre('save', async function(next) {
   //TODO make sure slugs are unique so no duplicate store name slugs
 });
 
+// Have to use proper function (not arrow function) when using statics
+// so that "this" will be bound to the model
+storeSchema.statics.getTagsList = function(){
+  return this.aggregate([
+    { $unwind: '$tags' },
+    { $group: { _id: '$tags', count: { $sum: 1} }},
+    { $sort: { count: -1 }}
+  ]);
+}
+
 module.exports = mongoose.model('Store', storeSchema);

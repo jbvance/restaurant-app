@@ -84,3 +84,9 @@ exports.getStoreBySlug = async (req, res, next) => {
   if (!store) return next(); //Go to 404 error handler in app.js
   res.render('store', { store , title: store.name });
 }
+
+exports.getStoresByTag = async (req, res) => {
+  const tags = await Store.getTagsList();
+  const tag = req.params.tag;
+  res.render('tag', { tags, title: 'Tags', tag });
+};
