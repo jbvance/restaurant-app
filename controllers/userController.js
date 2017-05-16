@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const User = mongoose.model('User'); //This model was imported in start.js, so you can call it here
+const promisify = require('es6-promisify');
 
 exports.loginForm = (req, res) => {
   res.render('login', { title: 'Login'});
@@ -29,4 +31,11 @@ exports.validateRegister = (req, res, next) => {
     return;
   }
   next(); // there were no errors, call next middleware
+};
+
+exports.register = async (req, res, next) => {
+  const user = new User({ email: req.body.email, name: req.body.name })
+  const register = promisify(User.register, User); // register function is from passportLocalMongoose in User.js model file
+  await register(user, req.body.password);
+  next(); //pass to authController.login
 };
