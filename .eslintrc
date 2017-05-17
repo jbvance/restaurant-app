@@ -20,6 +20,8 @@
             "MethodDefinition": true,
             "ClassDeclaration": true
         }
-    }]
+    }],
+    "linebreak-style": 0,
+    "comma-dangle": 0
   }
 }

@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
-const User = mongoose.model('User'); //This model was imported in start.js, so you can call it here
+const User = mongoose.model('User'); // This model was imported in start.js, so you can call it here
 const promisify = require('es6-promisify');
 
 exports.loginForm = (req, res) => {
-  res.render('login', { title: 'Login'});
+  res.render('login', { title: 'Login' });
 };
 
 exports.registerForm = (req, res) => {
@@ -11,7 +11,7 @@ exports.registerForm = (req, res) => {
 };
 
 exports.validateRegister = (req, res, next) => {
-  //sanitizeBody is from expressValidator from app.js
+  // sanitizeBody is from expressValidator from app.js
   req.sanitizeBody('name');
   req.checkBody('name', 'You must supply a name').notEmpty();
   req.checkBody('email', 'That email is not valid').isEmail();
@@ -25,7 +25,7 @@ exports.validateRegister = (req, res, next) => {
   req.checkBody('password-confirm', 'Oops! Your passwords do not match').equals(req.body.password);
 
   const errors = req.validationErrors();
-  if(errors) {
+  if (errors) {
     req.flash('error', errors.map(err => err.msg));
     res.render('register', { title: 'Register', body: req.body, flashes: req.flash() });
     return;
@@ -34,8 +34,27 @@ exports.validateRegister = (req, res, next) => {
 };
 
 exports.register = async (req, res, next) => {
-  const user = new User({ email: req.body.email, name: req.body.name })
-  const register = promisify(User.register, User); // register function is from passportLocalMongoose in User.js model file
+  const user = new User({ email: req.body.email, name: req.body.name });
+  // register function is from passportLocalMongoose in User.js model file
+  const register = promisify(User.register, User);
   await register(user, req.body.password);
-  next(); //pass to authController.login
+  next(); // pass to authController.login
+};
+
+exports.account = (req, res) => {
+  res.render('account', { title: 'Edit Your Account' });
+};
+
+exports.updateAccount = async (req, res) => {
+  const updates = {
+    name: req.body.name,
+    email: req.body.email
+  };
+  const user = await User.findOneAndUpdate(
+    { _id: req.user._id },
+    { $set: updates },
+    { new: true, runValidators: true, context: 'query' }
+  );
+  req.flash('success', 'Updated the profile!');
+  res.redirect('back');
 };

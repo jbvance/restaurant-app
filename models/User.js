@@ -22,8 +22,13 @@ const userSchema = new Schema({
   }
 });
 
-//Add all the fields and methods needed to add authentication to schema
-userSchema.plugin(passportLocalMongoose, { usernameField: 'email'});
+userSchema.virtual('gravatar').get(function () {
+  const hash = md5(this.email);
+  return `https://gravatar.com/avatar/${hash}?s=200`;
+});
+
+// Add all the fields and methods needed to add authentication to schema
+userSchema.plugin(passportLocalMongoose, { usernameField: 'email' });
 userSchema.plugin(mongodbErrorHandler);
 
 module.exports = mongoose.model('User', userSchema);
