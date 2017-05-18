@@ -6,12 +6,12 @@ const uuid = require('uuid');
 
 const multerOptions = {
   storage: multer.memoryStorage(),
-  fileFilter: function(req, file, next){
+  fileFilter: function (req, file, next) {
     const isPhoto = file.mimetype.startsWith('image/');
     if (isPhoto) {
-      next (null, true);
+      next(null, true);
     } else {
-      next({ message: 'That filetype isn\'t allowed'}, false);
+      next({ message: 'That filetype isn\'t allowed' }, false);
     }
   }
 };
@@ -22,18 +22,18 @@ exports.homePage = (req, res) => {
 };
 
 exports.addStore = (req, res) => {
-  res.render('editStore', { title: 'Add Store'});
+  res.render('editStore', { title: 'Add Store' });
 };
 
 exports.upload = multer(multerOptions).single('photo');
 
-exports.resize = async(req, res, next) => {
+exports.resize = async (req, res, next) => {
   // Check if there is no new file to resize
-  if (!req.file){
+  if (!req.file) {
     next();
     return;
   }
-  const extension = req.file.mimetype.split("/")[1];
+  const extension = req.file.mimetype.split('/')[1];
   req.body.photo = `${uuid.v4()}.${extension}`;
   // now do the resizing
   const photo = await jimp.read(req.file.buffer);
@@ -41,7 +41,7 @@ exports.resize = async(req, res, next) => {
   await photo.write(`./public/uploads/${req.body.photo}`);
   // Keep going after file is written to file system
   next();
-}
+};
 
 exports.createStore = async (req, res) => {
   req.body.author = req.user._id;
@@ -50,16 +50,16 @@ exports.createStore = async (req, res) => {
   res.redirect(`/store/${store.slug}`);
 };
 
-exports.getStores = async  (req, res) => {
-  //1. Query the db for a list of all stores
+exports.getStores = async (req, res) => {
+  // 1. Query the db for a list of all stores
   const stores = await Store.find();
-  res.render('stores', { title: 'Stores', stores: stores})
+  res.render('stores', { title: 'Stores', stores });
 };
 
 const confirmOwner = (store, user) => {
   // must use "equals" b/c store.author is an ObjectId, and you have to use
   // equals to compare an ObjectId with a string
-  if (!store.author.equals(user._id)){
+  if (!store.author.equals(user._id)) {
     throw Error('You must own a store in order to edit it');
   }
 };
@@ -77,8 +77,8 @@ exports.updateStore = async (req, res) => {
   // set the location data to be a point
   req.body.location.type = 'Point';
   // find and update store
-  const store = await Store.findOneAndUpdate({_id: req.params.id, }, req.body, {
-    new: true, //return the new store instead of the old one
+  const store = await Store.findOneAndUpdate({ _id: req.params.id, }, req.body, {
+    new: true, // return the new store instead of the old one
     runValidators: true // validate input data - by default, it only validates
                        // on initial creation of store
   }).exec();
@@ -89,16 +89,31 @@ exports.updateStore = async (req, res) => {
 
 exports.getStoreBySlug = async (req, res, next) => {
   const store = await Store.findOne({ slug: req.params.slug });
-  if (!store) return next(); //Go to 404 error handler in app.js
-  res.render('store', { store , title: store.name });
-}
+  if (!store) return next(); // Go to 404 error handler in app.js
+  res.render('store', { store, title: store.name });
+};
 
 exports.getStoresByTag = async (req, res) => {
   const tag = req.params.tag;
   const tagQuery = tag || { $exists: true };
   const tagsPromise = Store.getTagsList();
-  const storesPromise = Store.find({ tags: tagQuery })
-  //Wait for both promises to finish
-  const [tags, stores] = await Promise.all([tagsPromise,storesPromise]);
+  const storesPromise = Store.find({ tags: tagQuery });
+  // Wait for both promises to finish
+  const [tags, stores] = await Promise.all([tagsPromise, storesPromise]);
   res.render('tag', { tags, title: 'Tags', tag, stores });
+};
+
+// Search store and sort by $meta 'textScore', which is provided by MongoDB
+exports.searchStores = async (req, res) => {
+  const stores = await Store.find({
+    $text: {
+      $search: req.query.q
+    }
+  }, {
+    score: { $meta: 'textScore' }
+  })
+  .sort({ score: { $meta: 'textScore' } })
+  // limit to only 5 results
+  .limit(5);
+  res.json(stores);
 };
