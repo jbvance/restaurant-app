@@ -82,6 +82,40 @@ storeSchema.statics.getTagsList = function () {
   ]);
 };
 
+storeSchema.statics.getTopStores = function () {
+  return this.aggregate([
+    //Lookup stores and populate their reviews
+    // can't use virtual reviews from below b/c aggregate is
+    // a more low-level MongoDB thing and virtual methods are a mongoose thing
+    { $lookup: { from: 'reviews', localField: '_id',foreignField: 'store',
+      as: 'reviews' } },
+
+    // Filter for only stores that have two or more reviews
+    // the .1 below is saying where the reviews have a [1] index like from an array,
+    // meaning that they have at least two values
+    { $match: { 'reviews.1': { $exists: true } } },
+    // Add the average rating fields
+    // If you have MongoDB 3.4, you can replace $project with $addField and you
+    // won't have to add back in all the fields below. However, 3.2 will only
+    // return the _id and review average when using $project like below, so
+    // you have to add the other fields you need back in
+    //$$ROOT is equal to the original document before $project is called
+    { $project: {
+      photo: '$$ROOT.photo',
+      name: '$$ROOT.name',
+      reviews: '$$ROOT.reviews',
+      slug: '$$ROOT.slug',
+      averageRating: { $avg: '$reviews.rating' }
+    } },
+    // sort it by our new field, highest reviews First
+    { $sort: { averageRating: -1 } },
+
+    // limit to 10 stores
+    { $limit: 10}
+
+  ]);
+};
+
 // Create a virtual method to retrieve all the reviews for a store
 // find reviews where the stores _id property === reviews store property
 storeSchema.virtual('reviews', {
@@ -89,5 +123,14 @@ storeSchema.virtual('reviews', {
   localField: '_id', // which field on the store
   foreignField: 'store' // which field on the review
 });
+
+//populate the reviews when a store is loaded
+function autopopulate(next) {
+  this.populate('reviews');
+  next();
+}
+
+storeSchema.pre('find', autopopulate);
+storeSchema.pre('findOne', autopopulate);
 
 module.exports = mongoose.model('Store', storeSchema);
