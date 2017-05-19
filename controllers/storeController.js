@@ -89,7 +89,9 @@ exports.updateStore = async (req, res) => {
 };
 
 exports.getStoreBySlug = async (req, res, next) => {
-  const store = await Store.findOne({ slug: req.params.slug });
+  const store = await Store.findOne({ slug: req.params.slug })
+    // populate takes a list of fields to populate separated by spaces
+    .populate('author reviews');
   if (!store) return next(); // Go to 404 error handler in app.js
   res.render('store', { store, title: store.name });
 };

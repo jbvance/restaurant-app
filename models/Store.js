@@ -38,6 +38,11 @@ const storeSchema = new mongoose.Schema({
     ref: 'User',
     required: 'You must supply an author'
   }
+}, {
+  // by default, MongoDB won't show virtuals when return an object or json
+  // form a query, so force it to by adding the below code
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Define our indexes
@@ -76,5 +81,13 @@ storeSchema.statics.getTagsList = function () {
     { $sort: { count: -1 } }
   ]);
 };
+
+// Create a virtual method to retrieve all the reviews for a store
+// find reviews where the stores _id property === reviews store property
+storeSchema.virtual('reviews', {
+  ref: 'Review', // which model to link to
+  localField: '_id', // which field on the store
+  foreignField: 'store' // which field on the review
+});
 
 module.exports = mongoose.model('Store', storeSchema);

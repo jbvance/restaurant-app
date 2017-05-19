@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 mongoose.Promise = global.Promise;
 
-const ReviewSchema = new mongoose.Schema({
+const reviewSchema = new mongoose.Schema({
   created: {
     type: Date,
     default: Date.now
@@ -28,4 +28,12 @@ const ReviewSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Review', ReviewSchema);
+function autopopulate(next) {
+  this.populate('author');
+  next();
+}
+
+reviewSchema.pre('find', autopopulate);
+reviewSchema.pre('findOne', autopopulate);
+
+module.exports = mongoose.model('Review', reviewSchema);
